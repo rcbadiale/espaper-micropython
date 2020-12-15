@@ -19,6 +19,12 @@ class Display:
       | CS    | 14      | LOW will enable comminucation to the Display     |
       | BUSY  | 4       | is HIGH when Display is busy, LOW when IDLE      |
       | SPI   | default | 4-wire communication using the SPI1 from ESP8266 |
+    
+    Position:
+      (0x000, 0x000) = Top    right corner
+      (0x00f, 0x000) = Bottom right corner
+      (0x000, 0x127) = Top    left corner
+      (0x00f, 0x127) = Bottom left corner
     """
     def __init__(self):
         # Screen size (x, y)
@@ -26,13 +32,13 @@ class Display:
 
         # Image size, pre-alocation and lookup table
         self.n_bytes = self.size[0] * self.size[1] // 8
-        self.image = self.blank_image()
+        self.blank_image()
         self.lut = (
-            '\x50\xAA\x55\xAA\x11\x00'
-            '\x00\x00\x00\x00\x00\x00'
-            '\x00\x00\x00\x00\x00\x00'
-            '\x00\x00\xFF\xFF\x1F\x00'
-            '\x00\x00\x00\x00\x00\x00'
+            b'\x50\xAA\x55\xAA\x11\x00'
+            b'\x00\x00\x00\x00\x00\x00'
+            b'\x00\x00\x00\x00\x00\x00'
+            b'\x00\x00\xFF\xFF\x1F\x00'
+            b'\x00\x00\x00\x00\x00\x00'
         )
 
         # Board -> Display pinout
@@ -73,9 +79,9 @@ class Display:
           - black (bool): black image when True, white image when False
         """
         if black:
-            self.image = b'\x00' * self.n_bytes
+            self.image = bytearray(b'\x00' * self.n_bytes)
         else:
-            self.image = b'\xff' * self.n_bytes
+            self.image = bytearray(b'\xff' * self.n_bytes)
 
     def wait_until_idle(self):
         """Display idle check to avoid sending commands when busy."""
@@ -108,6 +114,28 @@ class Display:
         self.spi.write(data)
         self.cs.on()
 
+    def set_memory_area(self):
+        """
+        Set the position to write in the RAM.
+        """
+        # Set RAM-X Address Start-End Position
+        self.write_cmd(b'\x44')
+        self.write_data(b'\x00\x0f')
+        # Set RAM-Y Address Start-End Position
+        self.write_cmd(b'\x45')
+        self.write_data(b'\x00\x00\x27\x01')
+
+    def set_memory_pointer(self):
+        """
+        Set the memory pointer position to write to the RAM.
+        """
+        # Set RAM-X Address count to 0x000
+        self.write_cmd(b'\x4e')
+        self.write_data(b'\x00')
+        # Set RAM-Y Address count to 0x127
+        self.write_cmd(b'\x4f')
+        self.write_data(b'\x00\x00')
+
     def init(self):
         """
         Prepare the display for normal operation.
@@ -126,7 +154,7 @@ class Display:
         # VCOM Voltage
         print('VCOM Voltage')
         self.write_cmd(b'\x2c')
-        self.write_data(b'\x9a')
+        self.write_data(b'\xa8')
         # Dummy Line
         print('Dummy Line')
         self.write_cmd(b'\x3a')
@@ -138,28 +166,17 @@ class Display:
         # Data Entry Mode
         print('Data Entry Mode')
         self.write_cmd(b'\x11')
-        self.write_data(b'\x01')
+        self.write_data(b'\x03')
         # Border Wave Form
         print('Border Wave Form')
         self.write_cmd(b'\x3c')
         self.write_data(b'\x33')
-        # Set RAM-X Address Start-End Position
-        print('Set RAM-X Address Start-End Position')
-        self.write_cmd(b'\x44')
-        self.write_data(b'\x00\x0f')
-        # Set RAM-Y Address Start-End Position
-        print('Set RAM-Y Address Start-End Position')
-        self.write_cmd(b'\x45')
-        self.write_data(b'\x27\x01\x00\x00')
-        # Set RAM-X Address count to ZERO
-        print('Set RAM-X Address count to ZERO')
-        self.write_cmd(b'\x4e')
-        self.write_data(b'\x00')
-        # Set RAM-Y Address count to 0x127
-        print('Set RAM-Y Address count to 0x127')
-        self.write_cmd(b'\x4f')
-        self.write_data(b'\x27\x01')
-        self.wait_until_idle()
+        # Set Memory Area
+        print('Set Memory Area')
+        self.set_memory_area()
+        # Set Memory Pointer
+        print('Set Memory Pointer')
+        self.set_memory_pointer()
         # Write LUT (LookUpTable)
         print('Write LUT')
         self.write_cmd(b'\x32')
@@ -172,6 +189,8 @@ class Display:
         Send the command to write data to RAM then send
         the IMAGE to it.
         """
+        self.set_memory_area()
+        self.set_memory_pointer()
         self.write_cmd(b'\x24')
         self.write_data(self.image)
 
@@ -185,3 +204,4 @@ class Display:
         self.write_cmd(b'\x22')
         self.write_data(b'\xc4')
         self.write_cmd(b'\x20')
+        self.write_cmd(b'\xff')
