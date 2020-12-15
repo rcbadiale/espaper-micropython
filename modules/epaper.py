@@ -20,24 +20,34 @@ class Display:
       | BUSY  | 4       | is HIGH when Display is busy, LOW when IDLE      |
       | SPI   | default | 4-wire communication using the SPI1 from ESP8266 |
     
-    Position:
-      (0x000, 0x000) = Top    right corner
-      (0x00f, 0x000) = Bottom right corner
-      (0x000, 0x127) = Top    left corner
-      (0x00f, 0x127) = Bottom left corner
+    Args:
+      portrait (bool): Set the (0, 0) position on the top-right corner.
+      fast (bool): Set the display for partial / fast refresh.
     """
-    def __init__(self):
+    def __init__(self, portrait=False, fast=False):
         # Screen size (x, y)
         self.size = (296, 128)
+        self.portrait = portrait
+
+        # Refresh mode
+        self.fast = fast
 
         # Image size, pre-alocation and lookup table
         self.n_bytes = self.size[0] * self.size[1] // 8
+        self.image = bytearray()
         self.blank_image()
-        self.lut = (
-            b'\x50\xAA\x55\xAA\x11\x00'
+        self.lut_full = (
+            b'\x50\xaa\x55\xaa\x11\x00'
             b'\x00\x00\x00\x00\x00\x00'
             b'\x00\x00\x00\x00\x00\x00'
-            b'\x00\x00\xFF\xFF\x1F\x00'
+            b'\x00\x00\xff\xff\x1f\x00'
+            b'\x00\x00\x00\x00\x00\x00'
+        )
+        self.lut_partial = (
+            b'\x10\x18\x18\x08\x18\x18'
+            b'\x08\x00\x00\x00\x00\x00'
+            b'\x00\x00\x00\x00\x00\x00'
+            b'\x00\x00\x13\x14\x44\x12'
             b'\x00\x00\x00\x00\x00\x00'
         )
 
@@ -78,6 +88,7 @@ class Display:
         args:
           - black (bool): black image when True, white image when False
         """
+        self.image = bytearray()
         if black:
             self.image = bytearray(b'\x00' * self.n_bytes)
         else:
@@ -120,21 +131,33 @@ class Display:
         """
         # Set RAM-X Address Start-End Position
         self.write_cmd(b'\x44')
-        self.write_data(b'\x00\x0f')
+        if self.portrait:
+            self.write_data(b'\x00\x0f')
+        else:
+            self.write_data(b'\x0f\x00')
         # Set RAM-Y Address Start-End Position
         self.write_cmd(b'\x45')
-        self.write_data(b'\x00\x00\x27\x01')
+        if self.portrait:
+            self.write_data(b'\x00\x00\x27\x01')
+        else:
+            self.write_data(b'\x27\x01\x00\x00')
 
     def set_memory_pointer(self):
         """
         Set the memory pointer position to write to the RAM.
         """
-        # Set RAM-X Address count to 0x000
+        # Set RAM-X Address count
         self.write_cmd(b'\x4e')
-        self.write_data(b'\x00')
-        # Set RAM-Y Address count to 0x127
+        if self.portrait:
+            self.write_data(b'\x00')
+        else:
+            self.write_data(b'\x0f')
+        # Set RAM-Y Address count
         self.write_cmd(b'\x4f')
-        self.write_data(b'\x00\x00')
+        if self.portrait:
+            self.write_data(b'\x00\x00')
+        else:
+            self.write_data(b'\x27\x01')
 
     def init(self):
         """
@@ -166,7 +189,10 @@ class Display:
         # Data Entry Mode
         print('Data Entry Mode')
         self.write_cmd(b'\x11')
-        self.write_data(b'\x03')
+        if self.portrait:
+            self.write_data(b'\x03')
+        else:
+            self.write_data(b'\x04')
         # Border Wave Form
         print('Border Wave Form')
         self.write_cmd(b'\x3c')
@@ -180,7 +206,10 @@ class Display:
         # Write LUT (LookUpTable)
         print('Write LUT')
         self.write_cmd(b'\x32')
-        self.write_data(self.lut)
+        if self.fast:
+            self.write_data(self.lut_partial)
+        else:
+            self.write_data(self.lut_full)
 
     def write_image(self):
         """
@@ -205,3 +234,12 @@ class Display:
         self.write_data(b'\xc4')
         self.write_cmd(b'\x20')
         self.write_cmd(b'\xff')
+
+    def full_refresh(self):
+        self.blank_image(True)
+        self.write_image()
+        self.update()
+        sleep_ms(300)
+        self.blank_image()
+        self.write_image()
+        self.update()
