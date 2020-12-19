@@ -26,8 +26,11 @@ class Display:
     """
     def __init__(self, portrait=False, fast=False):
         # Screen size (x, y)
-        self.size = (296, 128)
         self.portrait = portrait
+        if self.portrait:
+            self.size = (128, 296)
+        else:
+            self.size = (296, 128)
 
         # Refresh mode
         self.fast = fast
@@ -73,6 +76,7 @@ class Display:
         self.cs.on()
         self.rst.on()
         self.reset()
+        self.init()
 
     def reset(self):
         """Display reset cycle."""
@@ -167,44 +171,44 @@ class Display:
         datasheet of the display.
         """
         # Driver Output Control
-        print('Driver Output Control')
+        # print('Driver Output Control')
         self.write_cmd(b'\x01')
         self.write_data(b'\x27\x01\x00')
         # Booster soft start
-        print('Booster soft start')
+        # print('Booster soft start')
         self.write_cmd(b'\x0C')
         self.write_data(b'\xd7\xd6\x9d')
         # VCOM Voltage
-        print('VCOM Voltage')
+        # print('VCOM Voltage')
         self.write_cmd(b'\x2c')
         self.write_data(b'\xa8')
         # Dummy Line
-        print('Dummy Line')
+        # print('Dummy Line')
         self.write_cmd(b'\x3a')
         self.write_data(b'\x1a')
         # Gate Time
-        print('Gate Time')
+        # print('Gate Time')
         self.write_cmd('\x3b')
         self.write_data('\x08')
         # Data Entry Mode
-        print('Data Entry Mode')
+        # print('Data Entry Mode')
         self.write_cmd(b'\x11')
         if self.portrait:
             self.write_data(b'\x03')
         else:
             self.write_data(b'\x04')
         # Border Wave Form
-        print('Border Wave Form')
+        # print('Border Wave Form')
         self.write_cmd(b'\x3c')
         self.write_data(b'\x33')
         # Set Memory Area
-        print('Set Memory Area')
+        # print('Set Memory Area')
         self.set_memory_area()
         # Set Memory Pointer
-        print('Set Memory Pointer')
+        # print('Set Memory Pointer')
         self.set_memory_pointer()
         # Write LUT (LookUpTable)
-        print('Write LUT')
+        # print('Write LUT')
         self.write_cmd(b'\x32')
         if self.fast:
             self.write_data(self.lut_partial)
