@@ -2,6 +2,7 @@ import epaper
 import framebuf
 from time import sleep
 
+
 def main(fast=False):
     d = epaper.Display(portrait=True, fast=fast)
     fb = framebuf.FrameBuffer(d.image, 128, 296, framebuf.MONO_HLSB)
