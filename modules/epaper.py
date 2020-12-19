@@ -19,7 +19,7 @@ class Display:
       | CS    | 14      | LOW will enable comminucation to the Display     |
       | BUSY  | 4       | is HIGH when Display is busy, LOW when IDLE      |
       | SPI   | default | 4-wire communication using the SPI1 from ESP8266 |
-    
+
     Args:
       portrait (bool): Set the (0, 0) position on the top-right corner.
       fast (bool): Set the display for partial / fast refresh.
