@@ -32,41 +32,31 @@ class Display:
         else:
             self.size = (296, 128)
 
-        # Refresh mode
-        self.fast = fast
-
         # Image size, pre-alocation and lookup table
         self.n_bytes = self.size[0] * self.size[1] // 8
-        self.image = bytearray()
         self.blank_image()
-        self.lut_full = (
-            b'\x50\xaa\x55\xaa\x11\x00'
-            b'\x00\x00\x00\x00\x00\x00'
-            b'\x00\x00\x00\x00\x00\x00'
-            b'\x00\x00\xff\xff\x1f\x00'
-            b'\x00\x00\x00\x00\x00\x00'
-        )
-        self.lut_partial = (
-            b'\x10\x18\x18\x08\x18\x18'
-            b'\x08\x00\x00\x00\x00\x00'
-            b'\x00\x00\x00\x00\x00\x00'
-            b'\x00\x00\x13\x14\x44\x12'
-            b'\x00\x00\x00\x00\x00\x00'
-        )
-
-        # Board -> Display pinout
-        pins = {
-            'DC': (5, Pin.OUT),
-            'RESET': (2, Pin.OUT),
-            'CS': (15, Pin.OUT),
-            'BUSY': (4, Pin.IN),
-        }
+        if fast:
+            self.lut = (
+                b'\x10\x18\x18\x08\x18\x18'
+                b'\x08\x00\x00\x00\x00\x00'
+                b'\x00\x00\x00\x00\x00\x00'
+                b'\x00\x00\x13\x14\x44\x12'
+                b'\x00\x00\x00\x00\x00\x00'
+            )
+        else:
+            self.lut = (
+                b'\x50\xaa\x55\xaa\x11\x00'
+                b'\x00\x00\x00\x00\x00\x00'
+                b'\x00\x00\x00\x00\x00\x00'
+                b'\x00\x00\xff\xff\x1f\x00'
+                b'\x00\x00\x00\x00\x00\x00'
+            )
 
         # Pins definition
-        self.dc = Pin(*pins.get('DC'))
-        self.rst = Pin(*pins.get('RESET'))
-        self.cs = Pin(*pins.get('CS'))
-        self.busy = Pin(*pins.get('BUSY'))
+        self.dc = Pin(5, Pin.OUT)
+        self.rst = Pin(2, Pin.OUT)
+        self.cs = Pin(15, Pin.OUT)
+        self.busy = Pin(4, Pin.IN)
 
         # SPI definition
         self.spi = SPI(1, baudrate=4000000, polarity=0, phase=0)
@@ -197,23 +187,14 @@ class Display:
             self.write_data(b'\x03')
         else:
             self.write_data(b'\x04')
-        # Border Wave Form
-        # print('Border Wave Form')
-        self.write_cmd(b'\x3c')
-        self.write_data(b'\x33')
-        # Set Memory Area
-        # print('Set Memory Area')
-        self.set_memory_area()
-        # Set Memory Pointer
-        # print('Set Memory Pointer')
-        self.set_memory_pointer()
         # Write LUT (LookUpTable)
         # print('Write LUT')
         self.write_cmd(b'\x32')
-        if self.fast:
-            self.write_data(self.lut_partial)
-        else:
-            self.write_data(self.lut_full)
+        self.write_data(self.lut)
+        # Border Wave Form
+        # print('Border Wave Form')
+        # self.write_cmd(b'\x3c')
+        # self.write_data(b'\x33')
 
     def write_image(self):
         """
