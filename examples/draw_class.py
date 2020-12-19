@@ -41,5 +41,11 @@ def main():
     # Third box using rect function with fill
     d.rect(width // 3, height // 3, 2 * width // 3, 2 * height // 3, 0, True)
 
+    # Circle
+    d.circle(width // 2, height // 2, height // 3, 0)
+
+    # Circle with fill
+    d.circle(width // 6, height // 2, height // 6, 0, True)
+
     # d.text('this is only a text', 0, 0, 0)
     d.draw()

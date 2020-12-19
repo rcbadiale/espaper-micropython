@@ -4,6 +4,7 @@ In order for the display to work horizontally the VMSB
 implementation, which is not present in the framebuf
 module, was needed and is implemented here.
 """
+from math import sqrt, floor, ceil
 
 from epaper import Display
 
@@ -31,7 +32,9 @@ class Draw(Display):
           y (int): y position on the screen.
           color (int): 0 = black, 1 = white.
         """
-        if x < self.size[0] and y < self.size[1]:
+        if (
+            (x < self.size[0] and y < self.size[1]) and (x >= 0 and y >= 0)
+        ):
             index = (y >> 3) * self.size[0] + x
             offset = 7 - (y & 0x07)
             self.image[index] = (
@@ -116,3 +119,32 @@ class Draw(Display):
             self.hline(xi, yf, width, color)
             self.vline(xi, yi, height, color)
             self.vline(xf, yi, height, color)
+
+    def circle(self, xo: int, yo: int, radius: int, color: int, fill=False):
+        """
+        Draw a circle (filled or not) in the image buffer.
+
+        args:
+          xo (int): x center position on the screen.
+          yo (int): y center position on the screen.
+          radius (int): radius of the circle in pixels.
+          color (int): 0 = black, 1 = white.
+          fill (bool): if the circle should be filled or not.
+        """
+        for x in range(xo - radius, xo + radius + 1):
+            square = sqrt(radius ** 2 - (x - xo) ** 2)
+            y = yo + square
+            self.pixel(x, floor(y), color)
+            y = yo - square
+            self.pixel(x, floor(y), color)
+        for y in range(yo - radius, yo + radius + 1):
+            square = sqrt(radius ** 2 - (y - yo) ** 2)
+            x = xo + square
+            self.pixel(floor(x), y, color)
+            x = xo - square
+            self.pixel(floor(x), y, color)
+        if fill:
+            if radius > 1:
+                self.circle(xo, yo, radius - 1, color, True)
+            else:
+                self.circle(xo, yo, radius - 1, color, False)
