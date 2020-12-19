@@ -9,7 +9,8 @@ def main(fast=False):
         fb.text('Hello', n * 8, n * 8, 0)
     for n in range(24):
         fb.text('olleH', 128 - (n * 8), (15 + n) * 8, 0)
-    d.init()
+    fb.line(0, 0, 128, 296, 0)
+    fb.line(0, 296, 128, 0, 0)
     d.write_image()
     d.update()
 
@@ -19,10 +20,12 @@ def main(fast=False):
     fb = framebuf.FrameBuffer(d.image, 296, 128, framebuf.MONO_VLSB)
     for n in range(16):
         fb.text('this is only a text', n * 8, n * 8, 0)
-    d.init()
+    fb.line(0, 0, 296, 128, 0)
+    fb.line(0, 128, 296, 0, 0)
     d.write_image()
     d.update()
 
     sleep(15)
 
-    d.full_refresh()
+    if fast:
+        d.full_refresh()
