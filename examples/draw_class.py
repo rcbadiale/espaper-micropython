@@ -1,11 +1,12 @@
 from draw import Draw
+from font import font
 
 
-def main():
-    width = 296
-    height = 128
+def main(portrait=False):
+    d = Draw(portrait)
 
-    d = Draw()
+    width = d.size[0]
+    height = d.size[1]
 
     # Center pixel
     d.pixel(width // 2, height // 2, 0)
@@ -20,8 +21,8 @@ def main():
         d.pixel(i, 2 * height // 3, 0)
 
     # Diagonals
-    d.line(0, 0, 295, 127, 0)
-    d.line(0, 127, 295, 0, 0)
+    d.line(0, 0, width - 1, height - 1, 0)
+    d.line(0, height - 1, width - 1, 0, 0)
 
     # Center lines
     d.hline(0, height // 2, width, 0)
@@ -42,10 +43,26 @@ def main():
     d.rect(width // 3, height // 3, 2 * width // 3, 2 * height // 3, 0, True)
 
     # Circle
-    d.circle(width // 2, height // 2, height // 3, 0)
+    radius = min(height // 3, width // 3)
+    d.circle(width // 2, height // 2, radius, 0)
 
     # Circle with fill
-    d.circle(width // 6, height // 2, height // 6, 0, True)
+    radius = min(height // 6, width // 6)
+    d.circle(width // 6, height // 2, radius, 0, True)
 
-    # d.text('this is only a text', 0, 0, 0)
+    # Write "this is only a text" at the origin of the display
+    d.text('this is only a text', 0, 0, 0)
+
+    # Write every available character on the screen.
+    all_chars = sorted(font.keys())
+    y = height
+    x = 0
+    for n, letter in enumerate(all_chars):
+        if (n * 8) % width == 0:
+            y -= 8
+            x = 0
+        else:
+            x += 8
+        d.text(letter, x, y, 0)
+
     d.draw()

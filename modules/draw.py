@@ -4,9 +4,10 @@ In order for the display to work horizontally the VMSB
 implementation, which is not present in the framebuf
 module, was needed and is implemented here.
 """
-from math import sqrt, floor, ceil
+from math import floor, sqrt
 
 from epaper import Display
+from font import font
 
 
 class Draw(Display):
@@ -20,8 +21,36 @@ class Draw(Display):
         self.write_image()
         self.update()
 
-    def text(self, text: str, x: int, y: int, color: int):
-        raise NotImplementedError
+    def text(self, text: str, xo: int, yo: int, color: int):
+        """
+        Write the text in the image buffer at given position with the color.
+
+        args:
+          text (str): text to be written.
+          xo (int): x position on the screen (left of the first letter).
+          yo (int): y position on the screen (bottom of the first letter).
+          color (int): 0 = black, 1 = white.
+        """
+        for offset, letter in enumerate(text):
+            template = font.get(letter)
+            for x, line in enumerate(template):
+                line_str = '{:08b}'.format(line).replace('0b', '')
+                if self.portrait:
+                    line_str = reversed(line_str)
+                for y, pix in enumerate(line_str):
+                    if pix == '1':
+                        self.pixel(xo + x + (offset * 8), yo + y, color)
+
+    def position(self, x, y):
+        if self.portrait:
+            # HMSB
+            index = (x + y * self.size[0]) >> 3
+            offset = 7 - (x & 0x07)
+        else:
+            # VMSB
+            index = (y >> 3) * self.size[0] + x
+            offset = 7 - (y & 0x07)
+        return index, offset
 
     def pixel(self, x: int, y: int, color: int):
         """
@@ -35,8 +64,7 @@ class Draw(Display):
         if (
             (x < self.size[0] and y < self.size[1]) and (x >= 0 and y >= 0)
         ):
-            index = (y >> 3) * self.size[0] + x
-            offset = 7 - (y & 0x07)
+            index, offset = self.position(x, y)
             self.image[index] = (
                 self.image[index] & ~(0x01 << offset)
             ) | (
@@ -123,6 +151,8 @@ class Draw(Display):
     def circle(self, xo: int, yo: int, radius: int, color: int, fill=False):
         """
         Draw a circle (filled or not) in the image buffer.
+
+        Will raise an error if the radius is too big.
 
         args:
           xo (int): x center position on the screen.
